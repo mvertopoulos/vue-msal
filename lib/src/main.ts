@@ -53,8 +53,7 @@ export class MSAL {
                 redirectUri: this.auth.redirectUri
             },
             cache: this.cache,
-            system: options.system,
-            framework: options.framework
+            system: options.system
         });
 
         this.getSavedCallbacks();

@@ -8,7 +8,7 @@ export const msalMixin = mixin;
 export default {
     install: (Vue: any, options: Options) => {
         Vue.prototype.$msal = new MSAL(options);
-        if (options.globalMixin) {
+        if (options.framework && options.framework.globalMixin) {
             Vue.mixin(mixin);
         }
     }

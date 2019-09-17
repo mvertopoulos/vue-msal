@@ -1,5 +1,5 @@
 import {AuthError, AuthResponse} from "msal";
-import {CacheOptions, FrameworkOptions, SystemOptions} from "msal/lib-commonjs/Configuration";
+import {CacheOptions, SystemOptions} from "msal/lib-commonjs/Configuration";
 
 export type Auth = {
     clientId: string,
@@ -29,7 +29,9 @@ export type AuthError = AuthError
 export type AuthResponse = AuthResponse
 export type CacheOptions = CacheOptions
 export type SystemOptions = SystemOptions
-export type FrameworkOptions = FrameworkOptions
+export type FrameworkOptions = {
+    globalMixin?: boolean
+}
 
 export type Options = {
     auth: Auth,
@@ -37,8 +39,7 @@ export type Options = {
     graph?: Graph,
     cache?: CacheOptions,
     system?: SystemOptions,
-    framework?: FrameworkOptions,
-    globalMixin?: false
+    framework?: FrameworkOptions
 }
 
 export type DataObject = {
