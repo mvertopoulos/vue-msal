@@ -14,8 +14,8 @@ export class MSAL {
     };
     public callbackQueue: CallbackQueueObject[] = [];
     private readonly auth: Auth = {
-        tenantId: '',
         clientId: '',
+        tenantId: 'common',
         tenantName: 'login.microsoftonline.com',
         redirectUri: window.location.href,
         postLogoutRedirectUri: window.location.href,
@@ -38,8 +38,8 @@ export class MSAL {
         onResponse: (response) => {}
     };
     constructor(private readonly options: Options) {
-        if (!options.auth.clientId || !options.auth.tenantId) {
-            throw new Error('auth.clientId & auth.tenantId are both required');
+        if (!options.auth.clientId) {
+            throw new Error('auth.clientId is required');
         }
         this.auth = Object.assign(this.auth, options.auth);
         this.cache = Object.assign(this.cache, options.cache);

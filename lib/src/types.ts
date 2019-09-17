@@ -3,7 +3,7 @@ import {CacheOptions, SystemOptions} from "msal/lib-commonjs/Configuration";
 
 export type Auth = {
     clientId: string,
-    tenantId: string,
+    tenantId?: string,
     tenantName?: string,
     validateAuthority?: boolean;
     redirectUri?: string | (() => string);
