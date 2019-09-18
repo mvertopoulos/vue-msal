@@ -1,6 +1,6 @@
 {
   "name": "vue-msal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vue plugin for using Microsoft Authentication Library (MSAL)",
   "main": "dist/plugin.js",
   "scripts": {
@@ -25,9 +25,6 @@
   ],
   "eslintIgnore": [
     "lib/*.*"
-  ],
-  "files": [
-    "lib"
   ],
   "homepage": "https://github.com/mvertopoulos/vue-msal#readme",
   "publishConfig": {
