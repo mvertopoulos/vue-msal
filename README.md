@@ -34,13 +34,11 @@ Add a new javascript file like `msal.js` under `/plugins/` directory with the fo
 import Vue from 'vue'
 import msal from 'vue-msal'
 
-export default () => {
-  Vue.use(msal, {
+Vue.use(msal, {
     auth: {
       clientId: '<YOUR CLIENT ID HERE>'
     }
-  });
-}
+});
 ```
 Then include it to the plugins array in `nuxt.config.js` like this
 ```js
