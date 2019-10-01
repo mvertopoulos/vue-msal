@@ -65,7 +65,7 @@ new Vue({
 ```
 #### List of functions
 * `signIn()`: Start the sign-in process **manually** 
-> :grey_exclamation: *Note: you can also start the process automatically **in case the user needs to be authorized in all pages** by setting the option `auth.requireAuthOnInitialize` to `true`. Check the [Auth Configuration Options](#auth-options-required) below for more details*
+> :grey_exclamation: *Note: you can also start the process automatically **in case the user needs to be authorized in all pages** by setting the option `auth.requireAuthOnInitialize` to `true`. Check the [Auth Configuration Options](#auth-options--required-) below for more details*
 * `signOut()`: Sign out an authorized user
 * `isAuthenticated()`: Returns `true` if the user has been authenticated and `false` otherwise.
 > :grey_exclamation: *Note: This function should not be used for reactivity. In order to **watch** whether the user is authenticated or not you should use the [mixin](#mixin) data properties below.*
