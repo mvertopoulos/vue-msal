@@ -74,8 +74,7 @@ export class MSAL {
         this.data.isAuthenticated = this.isAuthenticated();
         if(this.data.isAuthenticated){
             this.data.user = this.lib.getAccount();
-            this.acquireToken().then(accessToken => {
-                this.data.accessToken = accessToken;
+            this.acquireToken().then(() => {
                 if(this.graph.callAfterInit) {
                     this.callMSGraph();
                 }
@@ -96,12 +95,13 @@ export class MSAL {
         this.lib.logout();
     }
     isAuthenticated() {
-        return !this.lib.isCallback(window.location.hash) && this.lib.getAccount();
+        return !this.lib.isCallback(window.location.hash) && !!this.lib.getAccount();
     }
     async acquireToken(request = this.request) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
             const { accessToken } = await this.lib.acquireTokenSilent(request);
+            this.data.accessToken = accessToken;
             return accessToken;
         } catch (error) {
             // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
@@ -109,6 +109,7 @@ export class MSAL {
             if (this.requiresInteraction(error.errorCode)) {
                 this.lib.acquireTokenRedirect(request); //acquireTokenPopup
             }
+            return false;
         }
     }
     private requiresInteraction(errorCode: string) {
