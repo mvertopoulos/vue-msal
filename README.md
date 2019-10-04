@@ -24,21 +24,27 @@ Vue.use(msal, {
 });
 
 new Vue({
-  //... options
+  //... vue options
 })
 ```
 
 #### Nuxt Usage
 Add a new javascript file like `msal.js` under `/plugins/` directory with the following content
+> :grey_exclamation: *Note: you should add Vue as a second argument to the constructor if you want to add the global mixin automatically with the `framework.globalMixin` option. Check the [mixin](#mixin) section below for more information*
 ```js
-import Vue from 'vue'
-import msal from 'vue-msal'
+import Vue from 'vue' //import Vue if you want to use the framework.globalMixin option
+import MSAL from 'vue-msal'
 
-Vue.use(msal, {
-    auth: {
-      clientId: '<YOUR CLIENT ID HERE>'
-    }
-});
+export default ({ app, error, $axios }, inject) => {
+  inject('msal', new MSAL(
+    {
+      auth: {
+        clientId: '<YOUR CLIENT ID HERE>'
+      }
+    }, Vue /* [optional] should be passed as an argument if you want to the framework.globalMixin option*/
+  ))
+}
+
 ```
 Then include it to the plugins array in `nuxt.config.js` like this
 ```js
@@ -50,6 +56,7 @@ export default {
     ]
 }
 ```
+This will make the $msal object available in both the vue instances and the context (You can access it in the context via the app object like this: ```context.app.$msal```).
 
 ## Plugin usage
 When the plugin is initialized it exposes its context to `vm.$msal` (where `vm` refers to the Vue's scope) so you can, for example, call the signIn method like this:

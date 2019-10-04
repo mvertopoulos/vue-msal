@@ -1,9 +1,9 @@
 import axios from "axios";
 import _ from "lodash";
 import { UserAgentApplicationExtended } from "./UserAgentApplicationExtended";
-import {Auth, Request, Graph, CacheOptions, Options, DataObject, CallbackQueueObject, AuthError, AuthResponse} from './types';
+import {Auth, Request, Graph, CacheOptions, Options, DataObject, CallbackQueueObject, AuthError, AuthResponse, MSALBasic} from './types';
 
-export class MSAL {
+export class MSAL implements MSALBasic {
     private lib: any;
     public data: DataObject = {
         isAuthenticated: false,

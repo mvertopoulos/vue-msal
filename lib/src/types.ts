@@ -55,3 +55,13 @@ export type CallbackQueueObject = {
     callback: string,
     arguments: any[]
 }
+
+export interface MSALBasic {
+    data: DataObject,
+    signIn: () => void,
+    signOut: () => Promise<any> | void,
+    isAuthenticated: () => boolean,
+    acquireToken: (request: Request) => Promise<string | boolean>,
+    callMSGraph: () => Promise<any> | void,
+    saveCustomData: (key: string, data: any) => void
+}
