@@ -2,10 +2,10 @@
 
 #### Wrapper of [MSAL.js](https://github.com/AzureAD/microsoft-authentication-library-for-js#readme) (*Microsoft Authentication Library*) for usage in Vue.
 
-The vue-msal library enables client-side [vue](https://vuejs.org/) applications, running in a web browser, to authenticate users using [Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-overview) work and school accounts (AAD), Microsoft personal accounts (MSA) and social identity providers like Facebook, Google, LinkedIn, Microsoft accounts, etc. through [Azure AD B2C](https://docs.microsoft.com/en-us/azure/active-directory-b2c/active-directory-b2c-overview#identity-providers) service. It also enables your app to get tokens to access [Microsoft Cloud](https://www.microsoft.com/enterprise) services such as [Microsoft Graph](https://graph.microsoft.io/).
+The vue-msal library enables client-side [vue](https://vuejs.org/) applications, running in a web browser, to authenticate users using [Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-overview) work and school accounts (AAD), Microsoft personal accounts (MSA) and social identity providers like Facebook, Google, LinkedIn, Microsoft accounts, etc. through [Azure AD B2C](https://docs.microsoft.com/en-us/azure/active-directory-b2c/active-directory-b2c-overview#identity-providers) service. It also enables your app to access [Microsoft Cloud](https://www.microsoft.com/enterprise) services such as [Microsoft Graph](https://graph.microsoft.io/).
 
 ## Installation
-Add `vue-msal` dependency using yarn or npm to your project.
+Add the `vue-msal` dependency to your project using yarn or npm.
 ```shell script
 npm install vue-msal
 or
@@ -56,7 +56,15 @@ export default {
     ]
 }
 ```
-This will make the $msal object available in both the vue instances and the context (You can access it in the context via the app object like this: ```context.app.$msal```).
+This will make the `$msal` object available in both the vue instances and the [context](https://nuxtjs.org/api/context/). For example you can access it in the context of a [middleware](https://nuxtjs.org/api/pages-middleware/) via the app object like this:
+```js
+export default function ({ app, route, error }) {
+  // If the user is not authenticated and he's not in the /login page throw Error
+  if (!app.$msal.isAuthenticated() && route.name !== 'login') {
+    error({ statusCode: 401, message: 'Unauthorized' });
+  }
+}
+```
 
 ## Plugin usage
 When the plugin is initialized it exposes its context to `vm.$msal` (where `vm` refers to the Vue's scope) so you can, for example, call the signIn method like this:
@@ -80,13 +88,23 @@ new Vue({
 > :grey_exclamation: *Note: This will also run automatically after the user's successful authentication using the default permissions defined in the `auth.scopes` property of the configuration options. You should however run this manually in case you want to get an access token with more permissions than the default, by adding the new request options as an argument, like this<br>
 >`acquireToken({scopes: ["user.read", "another.permission"]})` <br>
 >Check the [Request Configuration Options](#request-options) below for more details*
-* `callMSGraph()`: Manually call ms graph API using the acquired access token.
-> :grey_exclamation: *Note: You can also set this to run automatically after a successful authentication by setting `graph.callAfterInit` property to `true` in the [Graph Configuration Options](#graph-options)*
+* `msGraph(endpoints[,batchUrl])`: Manually call the MS Graph API using the acquired access token.
+> :grey_exclamation: *Note: Read the [Calling MS Graph](#calling-ms-graph) section for more details*
 * `saveCustomData(key, data)`: You can use this function to add custom data to the selected cache location (set with `cache.cacheLocation` in  the [configuration options](#cache-options)), that will be automatically deleted when the user signs out or his access token expires. This should be used, for example, to store any user related data fetched from another API.
-> :grey_exclamation: *Note: You can get this data **with reactivity** by watching the `msal.custom` property of the [mixin](#mixin)'s data object*
+> :grey_exclamation: *Note: You can read this data **without reactivity** from the [data object](#the-data-object) or **with reactivity** by watching the `msal.custom` property of the [mixin](#mixin)'s data object*
 
-### Mixin
-All user related data is exposed via a mixin in the `msal` data property so that you can have access to it like you would normally access any of the component's data properties **with reactivity**.
+### The data object
+You can access the data object that contains all of the user related data using the `$msal.data` object which is available in [nuxt's context](https://nuxtjs.org/api/context/). However in case you want reactivity for this data, it is recomended that you use the [mixin](#mixin) method below.
+
+The properties provided in the data object are the following:
+* `isAuthenticated`: Is `true` if the user has been successfully authenticated and `false` otherwise.
+* `accessToken`: The authenticated user's access token
+* `user`: The user's data provided as a response by the **authentication's** API call
+* `graph`: The data provided as a response by the **MS Graph API** call that runs on initialization when the `graph.callAfterInit` option is set to true. Check the [Calling MS Graph](#calling-ms-graph) section for more details 
+* `custom`: Whatever data you have saved using the `saveCustomData(key, data)` function call. (Check the relevant section in the plugin's [function list](#list-of-functions) above for more details)
+
+#### Mixin
+All user related data can be exposed via a mixin in the `msal` data property so that you can have access to it like you would normally access any of the component's data properties **with reactivity**.
 >  :exclamation: Notice that the dollar sign ($) is missing here. While `this.$msal` refers to the plugin's exposed object, `this.msal` refers to the mixin's data object. Be careful not to confuse these two.
 
 So for example you can do this:
@@ -95,7 +113,7 @@ So for example you can do this:
 <div id="demo">
     <div v-if="user">
         <div>Welcome {{user.name}}</div>
-        <div>Your job title is {{user.jobTitle}}</div>
+        <div v-if="user.profile.jobTitle">Your job title is {{user.profile.jobTitle}}</div>
         <div><button @click="$msal.signOut()">logout</button></div>
     </div>
     <div v-else>
@@ -105,12 +123,12 @@ So for example you can do this:
 </div>
 
 <script>
-//Importing the mixin locally (omit the following line if you are using the 'framework.globalMixin' option
+//Importing the mixin locally (omit the following line if you are using the 'framework.globalMixin' option)
 import { msalMixin } from 'vue-msal'; 
 
 new Vue({
     el: '#demo',
-    //Importing the mixin locally (omit the following line if you are using the 'framework.globalMixin' option
+    //Importing the mixin locally (omit the following line if you are using the 'framework.globalMixin' option)
     mixins: [msalMixin],
     computed: {
         user() {
@@ -118,7 +136,10 @@ new Vue({
           if (this.msal.isAuthenticated) { // Note that the dollar sign ($) is missing from this.msal
             user = {
               ...this.msal.user,
-              ...this.msal.userDetails
+              profile: {}
+            }
+            if (this.msal.graph && this.msal.graph.profile) {
+                user.profile = this.msal.graph.profile
             }
           }
           return user;
@@ -127,14 +148,100 @@ new Vue({
 });
 </script>
 ```
-> :exclamation: *Note: In case you want to import the mixin **globally** instead of importing it to specific vue instances you can do so by simply setting the `framework.globalMixin` to `true` in the [Framework Configuration Options](#framework-options). This will automatically add the mixin to all vue instances so that you have out-of-the-box access to the msal object*
+> :exclamation: *Note: In case you want to import the mixin **globally** instead of importing it to specific vue instances you can do so by simply setting the `framework.globalMixin` to `true` in the [Framework Configuration Options](#framework-options). This will automatically add the mixin to all vue instances so that you have out-of-the-box access to the msal object. In nuxt you must also add the Vue object as an argument to the plugin's initialization for this to work. Check the [nuxt usage](#nuxt-usage) section for details.*
 
-The properties provided in the `msal` data object are the following:
-* `isAuthenticated`: Is `true` if the user has been successfully authenticated and `false` otherwise.
-* `accessToken`: The authenticated user's access token
-* `user`: The user's data provided as a response by the **authentication's** API call
-* `userDetails`: The user's data provided as a response by the **MS graph** API call
-* `custom`: Whatever data you have saved using the `saveCustomData(key, data)` function call. (Check the relevant section in the plugin's [function list](#list-of-functions) above for more details)
+## Calling MS Graph
+You can directly call the [MS Graph API](https://docs.microsoft.com/en-us/graph/overview) for a logged-in user, with the following methods.
+
+#### Manually calling the MS Graph
+In order to manually call the MS Graph API you can use the `$msal.msGraph(endpoints[,batchUrl])` function that will automatically use the access token set for the logged in user.
+
+This function receives the following arguments:
+* `endpoints`: **[required]** This can be either a **single value for a single request to the API**, or an **array of values for a [batch request](https://docs.microsoft.com/en-us/graph/json-batching) to the API**. Each value can be either:
+   * An `object` containing the following properties:
+     * `url`: **[required]** This can either be:
+       * **A Full URL** (starting with *'http...'*) in case of a **single** request (this is invalid for batch requests)
+       * **The URI part** (i.e. */me*), which **must** be used for **batch** requests but can also be used for single requests (in which case the full URL will be composed using the value of `graph.baseUrl` option from the [Graph Configuration Options](#graph-options) as the **Base URL**).
+     * `id`: [optional] setting this to a string will result to returning a keyed object instead of an array containing the responses of a **batch** request. *This property is ignored for **single** requests.*
+     * Any other optional property from the [Axios Request Configuration](https://github.com/axios/axios#request-config)
+   * A `string` containing only the url (following the same rules as the `url` property of the object type argument)
+* `batchUrl`: [optional] using this argument you can set a custom URL for this batch call. If this is not set the `graph.baseUrl` option from the [Graph Configuration Options](#graph-options) will be used as the **Batch URL**. *This argument is ignored for **single** requests.*
+
+The response of this call depends on the arguments passed to it.
+* For a single request, it returns the response object (with properties: status, headers, body)
+* For a batch request:
+  * with an array of URIs passed as strings in the endpoints argument, it will return an array of response objects that match the URI's index.
+  * with an array of objects containing an id, it will return an object keyed with those ids containing the response object.
+
+Example usage:
+```js
+new Vue({
+    //...
+    async mounted() {
+        let result;
+        result = await app.$msal.msGraph('https://www.example.com/1.0/me');
+        // Single request at: https://www.example.com/1.0/me
+        // Returns: { status: <number>, headers: <object>, body: <object> }
+        result = await app.$msal.msGraph('/me');
+        // Single request at: graph.baseUrl + '/me'
+        // Returns: { status: <number>, headers: <object>, body: <object> }
+        await app.$msal.msGraph(['/me', '/me/messages']);
+        // Batch request at: graph.baseUrl for endpoints '/me' & '/me/messages'
+        // Returns: [
+        //      { status: <number>, headers: <object>, body: <object> },
+        //      { status: <number>, headers: <object>, body: <object> }
+        // ]
+        await app.$msal.msGraph(['/me', '/me/messages'], 'https://www.custom-msgraph-url.com');
+        // Batch request at: 'https://www.custom-msgraph-url.com' for endpoints '/me' & '/me/messages'
+        // Returns: [
+        //      { status: <number>, headers: <object>, body: <object> },
+        //      { status: <number>, headers: <object>, body: <object> }
+        // ]
+        await app.$msal.msGraph([{ url: '/me'}, { url: '/me/photo/$value', responseType: 'blob' }]);
+        // Batch request at: graph.baseUrl for endpoints '/me' & '/me/photo/$value'
+        // Returns: [
+        //      { status: <number>, headers: <object>, body: <object> },
+        //      { status: <number>, headers: <object>, body: <object> }
+        // ]
+        await app.$msal.msGraph([{ url: '/me', id: 'profile'}, { url: '/me/photo/$value', id: 'photo', responseType: 'blob' }]);
+        // Batch request at: graph.baseUrl for endpoints '/me' & '/me/photo/$value'
+        // Returns: {
+        //      profile: { status: <number>, headers: <object>, body: <object> },
+        //      photo: { status: <number>, headers: <object>, body: <object> }
+        // }
+        await app.$msal.msGraph(['/me', { url: '/me/photo/$value', id: 'photo', responseType: 'blob' }]);
+        // Batch request at: graph.baseUrl in endpoints '/me' & '/me/photo/$value'
+        // Returns: {
+        //      0: { status: <number>, headers: <object>, body: <object> },
+        //      photo: { status: <number>, headers: <object>, body: <object> }
+        // }
+    }
+});
+```
+
+#### Automatically calling the MS Graph on initialization
+You can also call the MS Graph API on initialization (in case the user is logged-in) by setting the `graph.callAfterInit` option to true in the [Graph Configuration Options](#graph-options). 
+
+You can assign the endpoints to be called in an object with keys like this:
+```js
+{
+    // Configuration options
+    graph: {
+      callAfterInit: true,
+      endpoints: {
+        // ...
+        // 'key' : endpoint
+        // ...
+        profile: '/me',
+        photo: { url: '/me/photo/$value', responseType: 'blob', force: true }
+      }
+    }
+}
+```
+This will create an object with **the body** of each result assigned to its respective key. You can get the result in `vm.msal.graph` data object (using the [mixin](#mixin)) or in `vm.$msal.data.graph`. The results are also cached to the storage you have selected (see [cache options](#cache-options)) unless the `force` option has been set to true in an endpoint (see bellow).
+The endpoints that can be passed as a value to that object can have any of the formats described in the [manual call](#manually-calling-the-ms-graph). However the object format can also have two extra properties:
+* `batchUrl`: [optional] If this option is set to a URL string, the endpoint will be grouped with any other endpoints that have the same batchUrl and the actual call to the API will be a batch call. You can also set this to `'default'` (as a string) in which case it will be executed as a batch request to the URL set in `graph.baseUrl` option in [graph configuration](#graph-options);
+* `force`: [optional] If this is set to `true`, the result of this endpoint will not be read from / written to the cache. All other endpoints that don't have this option set to true will be cached, but this will be executed on every initialization. You should use this option for any result that cannot be encoded to JSON (like a **blob** for example).
 
 ## General notes
 ### OAuth 2.0 and the Implicit Flow
@@ -201,7 +308,8 @@ scopes | `string[]` | An array of strings representing the scopes that will be u
 Option | Type | Description
 ------ | ----------- | -----------
 callAfterInit | `boolean` | Setting this to `true` will automatically call `vm.$msal.callMSGraph()` once the user has been authenticated.<br> **Default**: `false`
-meEndpoint | `string` | The API endpoint to be used for fetching the Graph data.<br>**Default**: `https://graph.microsoft.com/v1.0/me`
+endpoints | `object` | Please check the endpoint options in the [Automatically calling the MS Graph on initialization](#automatically-calling-the-ms-graph-on-initialization) section. <br>Default: `{profile: '/me'}`
+baseUrl | `string` | The default URL to be used when no full URL is set in single requests or no batch URL is set in batch requests.<br> Default: `'https://graph.microsoft.com/v1.0'`
 onResponse | `(ctx, response) => any` | Callback function called when a response has been received from the graph call. Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)<br> `response` - the  graph call's response
 
 #### `cache` options
@@ -224,6 +332,9 @@ tokenRenewalOffsetSeconds | number | The number of milliseconds which sets the w
 Option | Type | Description
 ------ | ----------- | -----------
 globalMixin | `boolean` | Setting this to `true` will add a mixin with the `msal` data object to **ALL** vue instances. Check the [Mixin](#mixin) section for more information <br> **Default**: `false`
+
+## Major (breaking) changes
+(1.x.x) to (2.x.x): Changed the methods used for accessing the MS Graph API
 
 ## License
 
