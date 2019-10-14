@@ -1,5 +1,6 @@
 import {AuthError, AuthResponse} from "msal";
 import {CacheOptions, SystemOptions} from "msal/lib-commonjs/Configuration";
+import { AxiosRequestConfig } from "axios";
 
 export type Auth = {
     clientId: string,
@@ -19,9 +20,15 @@ export type Request = {
     scopes?: string[]
 }
 
+export type GraphDetailedObject = AxiosRequestConfig & {
+    url: string,
+    id?: string
+}
+export type GraphEndpoints = string | GraphDetailedObject | Array<string | GraphDetailedObject>
 export type Graph = {
     callAfterInit?: boolean,
-    meEndpoint?: string,
+    baseUrl?: string,
+    endpoints?: { [id: string]: string | GraphDetailedObject },
     onResponse?: (ctx: object, response: object) => any
 }
 
@@ -46,7 +53,7 @@ export type DataObject = {
     isAuthenticated: boolean,
     accessToken: string,
     user: object,
-    userDetails: object,
+    graph: object,
     custom: object
 }
 
@@ -62,6 +69,8 @@ export interface MSALBasic {
     signOut: () => Promise<any> | void,
     isAuthenticated: () => boolean,
     acquireToken: (request: Request) => Promise<string | boolean>,
-    callMSGraph: () => Promise<any> | void,
+    msGraph: (endpoints:  GraphEndpoints, batchUrl: string | undefined) => Promise<object>,
     saveCustomData: (key: string, data: any) => void
 }
+
+export type CategorizedGraphRequests = { singleRequests: GraphDetailedObject[], batchRequests: { [id:string]: GraphDetailedObject[] } }

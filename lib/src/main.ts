@@ -1,7 +1,21 @@
-import axios from "axios";
 import _ from "lodash";
-import { UserAgentApplicationExtended } from "./UserAgentApplicationExtended";
-import {Auth, Request, Graph, CacheOptions, Options, DataObject, CallbackQueueObject, AuthError, AuthResponse, MSALBasic} from './types';
+import {default as axios, AxiosResponse, Method} from "axios";
+import {UserAgentApplicationExtended} from "./UserAgentApplicationExtended";
+import {
+    Auth,
+    Request,
+    Graph,
+    CacheOptions,
+    Options,
+    DataObject,
+    CallbackQueueObject,
+    AuthError,
+    AuthResponse,
+    MSALBasic,
+    GraphEndpoints,
+    GraphDetailedObject,
+    CategorizedGraphRequests
+} from './types';
 
 export class MSAL implements MSALBasic {
     private lib: any;
@@ -9,7 +23,7 @@ export class MSAL implements MSALBasic {
         isAuthenticated: false,
         accessToken: '',
         user: {},
-        userDetails: {},
+        graph: {},
         custom: {}
     };
     public callbackQueue: CallbackQueueObject[] = [];
@@ -34,7 +48,8 @@ export class MSAL implements MSALBasic {
     };
     private readonly graph: Graph = {
         callAfterInit: false,
-        meEndpoint: "https://graph.microsoft.com/v1.0/me",
+        endpoints: {profile: '/me'},
+        baseUrl: 'https://graph.microsoft.com/v1.0',
         onResponse: (response) => {}
     };
     constructor(private readonly options: Options) {
@@ -68,22 +83,22 @@ export class MSAL implements MSALBasic {
             this.saveCallback('auth.onToken', error, null);
         });
 
-        if(this.auth.requireAuthOnInitialize) {
+        if (this.auth.requireAuthOnInitialize) {
             this.signIn()
         }
         this.data.isAuthenticated = this.isAuthenticated();
-        if(this.data.isAuthenticated){
+        if (this.data.isAuthenticated) {
             this.data.user = this.lib.getAccount();
             this.acquireToken().then(() => {
-                if(this.graph.callAfterInit) {
-                    this.callMSGraph();
+                if (this.graph.callAfterInit) {
+                    this.initialMSGraphCall();
                 }
             });
         }
         this.getStoredCustomData();
     }
     signIn() {
-        if(!this.lib.isCallback(window.location.hash) && !this.lib.getAccount()){
+        if (!this.lib.isCallback(window.location.hash) && !this.lib.getAccount()) {
             // request can be used for login or token request, however in more complex situations this can have diverging options
             this.lib.loginRedirect(this.request);
         }
@@ -100,7 +115,7 @@ export class MSAL implements MSALBasic {
     async acquireToken(request = this.request) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
-            const { accessToken } = await this.lib.acquireTokenSilent(request);
+            const {accessToken} = await this.lib.acquireTokenSilent(request);
             this.data.accessToken = accessToken;
             return accessToken;
         } catch (error) {
@@ -120,29 +135,160 @@ export class MSAL implements MSALBasic {
             errorCode === "interaction_required" ||
             errorCode === "login_required";
     }
-    async callMSGraph() {
-        const { onResponse: callback, meEndpoint } = this.graph;
-        if (meEndpoint) {
-            const storedData = this.lib.store.getItem(`msal.msgraph-${this.data.accessToken}`);
-            if (storedData) {
-                this.data.userDetails = JSON.parse(storedData);
-            } else {
-                try {
-                    const response = await axios.get(meEndpoint, {
-                        headers: {
-                            Authorization: 'Bearer ' + this.data.accessToken
-                        }
-                    });
-                    this.data.userDetails = response.data;
-                    this.lib.store.setItem(`msal.msgraph-${this.data.accessToken}`, JSON.stringify(this.data.userDetails));
-                } catch (error) {
-                    console.log(error);
-                    return;
+    // MS GRAPH
+    async initialMSGraphCall() {
+        const {onResponse: callback} = this.graph;
+        let initEndpoints = this.graph.endpoints;
+
+        if (typeof initEndpoints === 'object' && !_.isEmpty(initEndpoints)) {
+            const resultsObj = {};
+            const forcedIds: string[] = [];
+            try {
+                const endpoints: { [id: string]: GraphDetailedObject & { force?: Boolean } } = {};
+                for (const id in initEndpoints) {
+                    endpoints[id] = this.getEndpointObject(initEndpoints[id]);
+                    if (endpoints[id].force) {
+                        forcedIds.push(id);
+                    }
                 }
+                let storedIds: string[] = [];
+                let storedData = this.lib.store.getItem(`msal.msgraph-${this.data.accessToken}`);
+                if (storedData) {
+                    storedData = JSON.parse(storedData);
+                    storedIds = Object.keys(storedData);
+                    Object.assign(resultsObj, storedData);
+                }
+                const {singleRequests, batchRequests} = this.categorizeRequests(endpoints, _.difference(storedIds, forcedIds));
+                const singlePromises = singleRequests.map(async endpoint => {
+                    const res = {};
+                    res[endpoint.id as string] = await this.msGraph(endpoint);
+                    return res;
+                });
+                const batchPromises = Object.keys(batchRequests).map(key => {
+                    const batchUrl = (key === 'default') ? undefined : key;
+                    return this.msGraph(batchRequests[key], batchUrl);
+                });
+                const mixedResults = await Promise.all([...singlePromises, ...batchPromises]);
+                mixedResults.map((res) => {
+                    for (const key in res) {
+                        res[key] = res[key].body;
+                    }
+                    Object.assign(resultsObj, res);
+                });
+                const resultsToSave = {...resultsObj};
+                forcedIds.map(id => delete resultsToSave[id]);
+                this.lib.store.setItem(`msal.msgraph-${this.data.accessToken}`, JSON.stringify(resultsToSave));
+                this.data.graph = resultsObj;
+            } catch (error) {
+                console.error(error);
             }
             if (callback)
-                this.saveCallback('graph.onResponse', this.data.userDetails);
+                this.saveCallback('graph.onResponse', this.data.graph);
         }
+    }
+    async msGraph(endpoints: GraphEndpoints, batchUrl: string | undefined = undefined) {
+        try {
+            if (Array.isArray(endpoints)) {
+                return await this.executeBatchRequest(endpoints, batchUrl);
+            } else {
+                return await this.executeSingleRequest(endpoints);
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+    private async executeBatchRequest(endpoints: Array<string | GraphDetailedObject>, batchUrl = this.graph.baseUrl) {
+        const requests = endpoints.map((endpoint, index) => this.createRequest(endpoint, index));
+        const {data} = await axios.request({
+            url: `${batchUrl}/$batch`,
+            method: 'POST' as Method,
+            data: {requests: requests},
+            headers: {Authorization: `Bearer ${this.data.accessToken}`},
+            responseType: 'json'
+        });
+        let result = {};
+        data.responses.map(response => {
+            let key = response.id;
+            delete response.id;
+            return result[key] = response
+        });
+        // Format result
+        const keys = Object.keys(result);
+        const numKeys = keys.sort().filter((key, index) => {
+            if (key.search('defaultID-') === 0) {
+                key = key.replace('defaultID-', '');
+            }
+            return parseInt(key) === index;
+        });
+        if (numKeys.length === keys.length) {
+            result = _.values(result);
+        }
+        return result;
+    }
+    private async executeSingleRequest(endpoint: string | GraphDetailedObject) {
+        const request = this.createRequest(endpoint);
+        if (request.url.search('http') !== 0) {
+            request.url = this.graph.baseUrl + request.url;
+        }
+        const res = await axios.request(_.defaultsDeep(request, {
+            url: request.url,
+            method: request.method as Method,
+            responseType: 'json',
+            headers: {Authorization: `Bearer ${this.data.accessToken}`}
+        }));
+        return {
+            status: res.status,
+            headers: res.headers,
+            body: res.data
+        }
+    }
+    private createRequest(endpoint: string | GraphDetailedObject, index = 0) {
+        const request = {
+            url: '',
+            method: 'GET',
+            id: `defaultID-${index}`
+        };
+        endpoint = this.getEndpointObject(endpoint);
+        if (endpoint.url) {
+            Object.assign(request, endpoint);
+        } else {
+            throw ({error: 'invalid endpoint', endpoint: endpoint});
+        }
+        return request;
+    }
+    private categorizeRequests(endpoints: { [id:string]: GraphDetailedObject & { batchUrl?: string } }, excludeIds: string[]): CategorizedGraphRequests {
+        let res: CategorizedGraphRequests = {
+            singleRequests: [],
+            batchRequests: {}
+        };
+        for (const key in endpoints) {
+            const endpoint = {
+                id: key,
+                ...endpoints[key]
+            };
+            if (!_.includes(excludeIds, key)) {
+                if (endpoint.batchUrl) {
+                    const {batchUrl} = endpoint;
+                    delete endpoint.batchUrl;
+                    if (!res.batchRequests.hasOwnProperty(batchUrl)) {
+                        res.batchRequests[batchUrl] = [];
+                    }
+                    res.batchRequests[batchUrl].push(endpoint);
+                } else {
+                    res.singleRequests.push(endpoint);
+                }
+            }
+        }
+        return res;
+    }
+    private getEndpointObject(endpoint: string | GraphDetailedObject): GraphDetailedObject {
+        if (typeof endpoint === "string") {
+            endpoint = {url: endpoint}
+        }
+        if (typeof endpoint === "object" && !endpoint.url) {
+            throw new Error('invalid endpoint url')
+        }
+        return endpoint;
     }
     // CUSTOM DATA
     saveCustomData(key: string, data: any) {
@@ -169,7 +315,7 @@ export class MSAL implements MSALBasic {
     }
     // CALLBACKS
     private saveCallback(callbackPath: string, ...args: any[]) {
-        if (_.get(this.options, callbackPath)){
+        if (_.get(this.options, callbackPath)) {
             const callbackQueueObject: CallbackQueueObject = {
                 id: _.uniqueId(`cb-${callbackPath}`),
                 callback: callbackPath,
@@ -193,7 +339,7 @@ export class MSAL implements MSALBasic {
                 const callback = _.get(this.options, cb.callback);
                 try {
                     await callback(this, ...cb.arguments);
-                    _.remove(this.callbackQueue, function(currentCb) {
+                    _.remove(this.callbackQueue, function (currentCb) {
                         return cb.id === currentCb.id;
                     });
                     this.storeCallbackQueue();
