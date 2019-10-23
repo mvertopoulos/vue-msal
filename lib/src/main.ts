@@ -65,7 +65,9 @@ export class MSAL implements MSALBasic {
             auth: {
                 clientId: this.auth.clientId,
                 authority: `https://${this.auth.tenantName}/${this.auth.tenantId}`,
-                redirectUri: this.auth.redirectUri
+                redirectUri: this.auth.redirectUri,
+                postLogoutRedirectUri: this.auth.postLogoutRedirectUri,
+                navigateToLoginRequestUrl: this.auth.navigateToLoginRequestUrl
             },
             cache: this.cache,
             system: options.system
