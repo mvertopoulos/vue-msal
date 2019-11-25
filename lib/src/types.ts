@@ -1,6 +1,9 @@
-import {AuthError, AuthResponse} from "msal";
-import {CacheOptions, SystemOptions} from "msal/lib-commonjs/Configuration";
+import msal from "msal";
+import conf from "msal/lib-commonjs/Configuration";
 import { AxiosRequestConfig } from "axios";
+
+export type AuthError = msal.AuthError;
+export type AuthResponse = msal.AuthResponse;
 
 export type Auth = {
     clientId: string,
@@ -11,7 +14,8 @@ export type Auth = {
     postLogoutRedirectUri?: string | (() => string);
     navigateToLoginRequestUrl?: boolean;
     requireAuthOnInitialize?: boolean,
-    onAuthentication: (ctx: object, error: AuthError, response: AuthResponse) => any
+    autoRefreshToken?: boolean,
+    onAuthentication: (ctx: object, error: AuthError, response: AuthResponse) => any,
     onToken: (ctx: object, error: AuthError | null, response: AuthResponse | null) => any,
     beforeSignOut: (ctx: object) => any
 }
@@ -32,10 +36,8 @@ export type Graph = {
     onResponse?: (ctx: object, response: object) => any
 }
 
-export type AuthError = AuthError
-export type AuthResponse = AuthResponse
-export type CacheOptions = CacheOptions
-export type SystemOptions = SystemOptions
+export type CacheOptions = conf.CacheOptions;
+export type SystemOptions = conf.SystemOptions;
 export type FrameworkOptions = {
     globalMixin?: boolean
 }

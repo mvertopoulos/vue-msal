@@ -19,6 +19,7 @@ import {
 
 export class MSAL implements MSALBasic {
     private lib: any;
+    private tokenExpirationTimer: undefined | number = undefined;
     public data: DataObject = {
         isAuthenticated: false,
         accessToken: '',
@@ -35,6 +36,7 @@ export class MSAL implements MSALBasic {
         postLogoutRedirectUri: window.location.href,
         navigateToLoginRequestUrl: true,
         requireAuthOnInitialize: false,
+        autoRefreshToken: true,
         onAuthentication: (error, response) => {},
         onToken: (error, response) => {},
         beforeSignOut: () => {}
@@ -117,8 +119,8 @@ export class MSAL implements MSALBasic {
     async acquireToken(request = this.request) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
-            const {accessToken} = await this.lib.acquireTokenSilent(request);
-            this.data.accessToken = accessToken;
+            const { accessToken, expiresOn, scopes } = await this.lib.acquireTokenSilent(request);
+            this.setAccessToken(accessToken, expiresOn, scopes);
             return accessToken;
         } catch (error) {
             // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
@@ -128,6 +130,19 @@ export class MSAL implements MSALBasic {
             }
             return false;
         }
+    }
+    private setAccessToken(accessToken: string, expiresOn: Date, scopes: string[]) {
+        this.data.accessToken = accessToken;
+        const expirationOffset = this.lib.config.system.tokenRenewalOffsetSeconds * 1000;
+        const expiration = expiresOn.getTime() - (new Date()).getTime() - expirationOffset;
+        if (this.tokenExpirationTimer) clearTimeout(this.tokenExpirationTimer);
+        this.tokenExpirationTimer = setTimeout(() => {
+            if (this.auth.autoRefreshToken) {
+                this.acquireToken({ scopes });
+            } else {
+                this.data.accessToken = '';
+            }
+        }, expiration)
     }
     private requiresInteraction(errorCode: string) {
         if (!errorCode || !errorCode.length) {

@@ -293,6 +293,7 @@ redirectUri | `string` &#124; `(() => string)` | The redirect URI of your app, w
 postLogoutRedirectUri | `string` &#124; `(() => string)` | Redirects the user to postLogoutRedirectUri after sign out.<br> **Default**: `redirectUri` *(the previous option)*
 navigateToLoginRequestUrl | `boolean` | Ability to turn off default navigation to start page after login.<br> **Default**: `true`
 requireAuthOnInitialize | `boolean` | Setting this to true will automatically require authentication right after the plugin has been initialized<br>**Default**: `false`
+autoRefreshToken | `boolean` | When a token expires, if this is set to:<br> `false` the plugin will set the `accessToken` to an empty string<br> `true` the plugin will automatically attempt to renew the token<br>:grey_exclamation: Note: Expiration time includes the tokenRenewalOffsetSeconds value set in [System Options](#system-options)<br>**Default**: `true`
 onAuthentication | `(ctx, error, response) => any` | Callback function to be executed after authentication request.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)<br> `error` - request error (=`null` if request was successful)<br> `response` - request's result (=`null` if request was unsuccessful)
 onToken | `(ctx, error, response) => any` | Callback function to be executed after token request.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)<br> `error` - request error (=`null` if request was successful)<br> `response` - request's result (=`null` if request was unsuccessful)
 beforeSignOut | `(ctx) => any` | Callback function to be executed before manual sign out.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)
@@ -334,6 +335,8 @@ Option | Type | Description
 globalMixin | `boolean` | Setting this to `true` will add a mixin with the `msal` data object to **ALL** vue instances. Check the [Mixin](#mixin) section for more information <br> **Default**: `false`
 
 ## Major (breaking) changes
+(2.x.x) to (3.x.x): Added timer for automatically changing the accessToken on expiration
+ 
 (1.x.x) to (2.x.x): Changed the methods used for accessing the MS Graph API
 
 ## License
