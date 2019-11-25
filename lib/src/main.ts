@@ -81,11 +81,6 @@ export class MSAL implements MSALBasic {
         this.lib.handleRedirectCallback((error: AuthError, response: AuthResponse) => {
             this.saveCallback('auth.onAuthentication', error, response);
         });
-        this.lib.handleRedirectCallback((response: AuthResponse) => {
-            this.saveCallback('auth.onToken', null, response);
-        }, (error: AuthError) => {
-            this.saveCallback('auth.onToken', error, null);
-        });
 
         if (this.auth.requireAuthOnInitialize) {
             this.signIn()
@@ -119,14 +114,19 @@ export class MSAL implements MSALBasic {
     async acquireToken(request = this.request) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
-            const { accessToken, expiresOn, scopes } = await this.lib.acquireTokenSilent(request);
-            this.setAccessToken(accessToken, expiresOn, scopes);
-            return accessToken;
+            const response = await this.lib.acquireTokenSilent(request);
+            if(this.data.accessToken !== response.accessToken) {
+                this.setAccessToken(response.accessToken, response.expiresOn, response.scopes);
+                this.saveCallback('auth.onToken', null, response);
+            }
+            return response.accessToken;
         } catch (error) {
             // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
             // Call acquireTokenRedirect
             if (this.requiresInteraction(error.errorCode)) {
                 this.lib.acquireTokenRedirect(request); //acquireTokenPopup
+            } else {
+                this.saveCallback('auth.onToken', error, null);
             }
             return false;
         }
