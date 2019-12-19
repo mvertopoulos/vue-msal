@@ -136,7 +136,7 @@ export class MSAL implements MSALBasic {
         const expirationOffset = this.lib.config.system.tokenRenewalOffsetSeconds * 1000;
         const expiration = expiresOn.getTime() - (new Date()).getTime() - expirationOffset;
         if (this.tokenExpirationTimer) clearTimeout(this.tokenExpirationTimer);
-        this.tokenExpirationTimer = setTimeout(() => {
+        this.tokenExpirationTimer = window.setTimeout(() => {
             if (this.auth.autoRefreshToken) {
                 this.acquireToken({ scopes });
             } else {
