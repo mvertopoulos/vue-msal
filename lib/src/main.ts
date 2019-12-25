@@ -32,6 +32,7 @@ export class MSAL implements MSALBasic {
         clientId: '',
         tenantId: 'common',
         tenantName: 'login.microsoftonline.com',
+        validateAuthority: true,
         redirectUri: window.location.href,
         postLogoutRedirectUri: window.location.href,
         navigateToLoginRequestUrl: true,
@@ -67,6 +68,7 @@ export class MSAL implements MSALBasic {
             auth: {
                 clientId: this.auth.clientId,
                 authority: `https://${this.auth.tenantName}/${this.auth.tenantId}`,
+                validateAuthority: this.auth.validateAuthority,
                 redirectUri: this.auth.redirectUri,
                 postLogoutRedirectUri: this.auth.postLogoutRedirectUri,
                 navigateToLoginRequestUrl: this.auth.navigateToLoginRequestUrl
