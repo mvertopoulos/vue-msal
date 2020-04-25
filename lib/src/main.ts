@@ -62,12 +62,12 @@ export class MSAL implements MSALBasic {
         this.auth = Object.assign(this.auth, options.auth);
         this.cache = Object.assign(this.cache, options.cache);
         this.request = Object.assign(this.request, options.request);
-        this.graph = Object.assign(this.graph, options.graph);
+        this.graph = Object.assign(this.graph, options.graph);    
 
         this.lib = new UserAgentApplicationExtended({
             auth: {
                 clientId: this.auth.clientId,
-                authority: `https://${this.auth.tenantName}/${this.auth.tenantId}`,
+                authority: this.auth.authority,
                 validateAuthority: this.auth.validateAuthority,
                 redirectUri: this.auth.redirectUri,
                 postLogoutRedirectUri: this.auth.postLogoutRedirectUri,
