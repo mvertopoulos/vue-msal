@@ -340,6 +340,7 @@ export class MSAL implements MSALBasic {
                 callback: callbackPath,
                 arguments: args
             };
+            _.remove(this.callbackQueue, (obj) => obj.id === callbackQueueObject.id);
             this.callbackQueue.push(callbackQueueObject);
             this.storeCallbackQueue();
             this.executeCallbacks([callbackQueueObject]);
