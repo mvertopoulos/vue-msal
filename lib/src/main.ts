@@ -30,6 +30,7 @@ export class MSAL implements MSALBasic {
     public callbackQueue: CallbackQueueObject[] = [];
     private readonly auth: Auth = {
         clientId: '',
+        authority: '',
         tenantId: 'common',
         tenantName: 'login.microsoftonline.com',
         validateAuthority: true,
@@ -67,7 +68,7 @@ export class MSAL implements MSALBasic {
         this.lib = new UserAgentApplicationExtended({
             auth: {
                 clientId: this.auth.clientId,
-                authority: `https://${this.auth.tenantName}/${this.auth.tenantId}`,
+                authority: this.auth.authority || `https://${this.auth.tenantName}/${this.auth.tenantId}`,
                 validateAuthority: this.auth.validateAuthority,
                 redirectUri: this.auth.redirectUri,
                 postLogoutRedirectUri: this.auth.postLogoutRedirectUri,

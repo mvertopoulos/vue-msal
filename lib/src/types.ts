@@ -7,6 +7,7 @@ export type AuthResponse = msal.AuthResponse;
 
 export type Auth = {
     clientId: string,
+    authority? : string,
     tenantId?: string,
     tenantName?: string,
     validateAuthority?: boolean;
