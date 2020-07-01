@@ -1,5 +1,5 @@
 import _ from "lodash";
-import {default as axios, AxiosResponse, Method} from "axios";
+import {default as axios, Method} from "axios";
 import {UserAgentApplicationExtended} from "./UserAgentApplicationExtended";
 import {
     Auth,
@@ -19,10 +19,11 @@ import {
 
 export class MSAL implements MSALBasic {
     private lib: any;
-    private tokenExpirationTimer: undefined | number = undefined;
+    private tokenExpirationTimers: {[key: string]: undefined | number} = {};
     public data: DataObject = {
         isAuthenticated: false,
         accessToken: '',
+        idToken: '',
         user: {},
         graph: {},
         custom: {}
@@ -82,7 +83,11 @@ export class MSAL implements MSALBasic {
         this.executeCallbacks();
         // Register Callbacks for redirect flow
         this.lib.handleRedirectCallback((error: AuthError, response: AuthResponse) => {
-            this.saveCallback('auth.onAuthentication', error, response);
+            if (!this.isAuthenticated()) {
+                this.saveCallback('auth.onAuthentication', error, response);
+            } else {
+                this.acquireToken();
+            }
         });
 
         if (this.auth.requireAuthOnInitialize) {
@@ -114,36 +119,58 @@ export class MSAL implements MSALBasic {
     isAuthenticated() {
         return !this.lib.isCallback(window.location.hash) && !!this.lib.getAccount();
     }
-    async acquireToken(request = this.request) {
+    async acquireToken(request = this.request, retries = 0) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
             const response = await this.lib.acquireTokenSilent(request);
-            if(this.data.accessToken !== response.accessToken) {
-                this.setAccessToken(response.accessToken, response.expiresOn, response.scopes);
-                this.saveCallback('auth.onToken', null, response);
-            }
-            return response.accessToken;
+            this.handleTokenResponse(null, response);
+            return response;
         } catch (error) {
             // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
             // Call acquireTokenRedirect
             if (this.requiresInteraction(error.errorCode)) {
-                this.lib.acquireTokenRedirect(request); //acquireTokenPopup
-            } else {
-                this.saveCallback('auth.onToken', error, null);
+                this.lib.acquireTokenRedirect(request);
+            } else if(retries > 0) {
+                return await new Promise((resolve) => {
+                    setTimeout(async () => {
+                        const res = await this.acquireToken(request, retries-1);
+                        resolve(res);
+                    }, 60 * 1000);
+                })
             }
             return false;
         }
     }
-    private setAccessToken(accessToken: string, expiresOn: Date, scopes: string[]) {
-        this.data.accessToken = accessToken;
+    private handleTokenResponse(error, response) {
+        if (error) {
+            this.saveCallback('auth.onToken', error, null);
+            return;
+        }
+        let setCallback = false;
+        if(response.tokenType === 'access_token' && this.data.accessToken !== response.accessToken) {
+            this.setToken('accessToken', response.accessToken, response.expiresOn, response.scopes);
+            setCallback = true;
+        }
+        if(this.data.idToken !== response.idToken.rawIdToken) {
+            this.setToken('idToken', response.idToken.rawIdToken, new Date(response.idToken.expiration * 1000), [this.auth.clientId]);
+            setCallback = true;
+        }
+        if(setCallback) {
+            this.saveCallback('auth.onToken', null, response);
+        }
+    }
+    private setToken(tokenType:string, token: string, expiresOn: Date, scopes: string[]) {
         const expirationOffset = this.lib.config.system.tokenRenewalOffsetSeconds * 1000;
         const expiration = expiresOn.getTime() - (new Date()).getTime() - expirationOffset;
-        if (this.tokenExpirationTimer) clearTimeout(this.tokenExpirationTimer);
-        this.tokenExpirationTimer = window.setTimeout(() => {
+        if (expiration >= 0) {
+            this.data[tokenType] = token;
+        }
+        if (this.tokenExpirationTimers[tokenType]) clearTimeout(this.tokenExpirationTimers[tokenType]);
+        this.tokenExpirationTimers[tokenType] = window.setTimeout(async () => {
             if (this.auth.autoRefreshToken) {
-                this.acquireToken({ scopes });
+                await this.acquireToken({ scopes }, 3);
             } else {
-                this.data.accessToken = '';
+                this.data[tokenType] = '';
             }
         }, expiration)
     }

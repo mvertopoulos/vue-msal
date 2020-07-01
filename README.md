@@ -84,10 +84,11 @@ new Vue({
 * `signOut()`: Sign out an authorized user
 * `isAuthenticated()`: Returns `true` if the user has been authenticated and `false` otherwise.
 > :grey_exclamation: *Note: This function should not be used for reactivity. In order to **watch** whether the user is authenticated or not you should use the [mixin](#mixin) data properties below.*
-* `acquireToken()`: Acquire an access token manually.
+* `acquireToken([request[,retries]])`: Acquire an access token manually.
 > :grey_exclamation: *Note: This will also run automatically after the user's successful authentication using the default permissions defined in the `auth.scopes` property of the configuration options. You should however run this manually in case you want to get an access token with more permissions than the default, by adding the new request options as an argument, like this<br>
 >`acquireToken({scopes: ["user.read", "another.permission"]})` <br>
->Check the [Request Configuration Options](#request-options) below for more details*
+>Check the [Request Configuration Options](#request-options) below for more details*.<br>
+>You can also pass in a second parameter, with a number of retries in case of an **unexpected** failure (i.e. network errors).
 * `msGraph(endpoints[,batchUrl])`: Manually call the MS Graph API using the acquired access token.
 > :grey_exclamation: *Note: Read the [Calling MS Graph](#calling-ms-graph) section for more details*
 * `saveCustomData(key, data)`: You can use this function to add custom data to the selected cache location (set with `cache.cacheLocation` in  the [configuration options](#cache-options)), that will be automatically deleted when the user signs out or his access token expires. This should be used, for example, to store any user related data fetched from another API.
@@ -98,10 +99,16 @@ You can access the data object that contains all of the user related data using 
 
 The properties provided in the data object are the following:
 * `isAuthenticated`: Is `true` if the user has been successfully authenticated and `false` otherwise.
-* `accessToken`: The authenticated user's access token
+* `accessToken`: The authenticated user's **access** token. Read [below](#using-accesstoken-vs-idtoken) for information on usage.
+* `idToken`: The authenticated user's **id** token. Read [below](#using-accesstoken-vs-idtoken) for information on usage.
 * `user`: The user's data provided as a response by the **authentication's** API call
 * `graph`: The data provided as a response by the **MS Graph API** call that runs on initialization when the `graph.callAfterInit` option is set to true. Check the [Calling MS Graph](#calling-ms-graph) section for more details 
 * `custom`: Whatever data you have saved using the `saveCustomData(key, data)` function call. (Check the relevant section in the plugin's [function list](#list-of-functions) above for more details)
+
+#### Using `accessToken` vs `idToken`
+
+* `accessToken`: This token is not validatable outside of *MS Graph API* and therefore can only be used for MS Graph calls.
+* `idToken`: This token is validatable and can be used for authentication / authorization with exteral APIs.
 
 #### Mixin
 All user related data can be exposed via a mixin in the `msal` data property so that you can have access to it like you would normally access any of the component's data properties **with reactivity**.
@@ -294,7 +301,7 @@ redirectUri | `string` &#124; `(() => string)` | The redirect URI of your app, w
 postLogoutRedirectUri | `string` &#124; `(() => string)` | Redirects the user to postLogoutRedirectUri after sign out.<br> **Default**: `redirectUri` *(the previous option)*
 navigateToLoginRequestUrl | `boolean` | Ability to turn off default navigation to start page after login.<br> **Default**: `true`
 requireAuthOnInitialize | `boolean` | Setting this to true will automatically require authentication right after the plugin has been initialized<br>**Default**: `false`
-autoRefreshToken | `boolean` | When a token expires, if this is set to:<br> `false` the plugin will set the `accessToken` to an empty string<br> `true` the plugin will automatically attempt to renew the token<br>:grey_exclamation: Note: Expiration time includes the tokenRenewalOffsetSeconds value set in [System Options](#system-options)<br>**Default**: `true`
+autoRefreshToken | `boolean` | When a token expires (either the `idToken` or the `accessToken`), if this is set to:<br> `false` the plugin will set the relevant token to an empty string<br> `true` the plugin will automatically attempt to renew the token<br>:grey_exclamation: Note: Expiration time includes the `tokenRenewalOffsetSeconds` value set in [System Options](#system-options)<br>**Default**: `true`
 onAuthentication | `(ctx, error, response) => any` | Callback function to be executed after authentication request.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)<br> `error` - request error (=`null` if request was successful)<br> `response` - request's result (=`null` if request was unsuccessful)
 onToken | `(ctx, error, response) => any` | Callback function to be executed after token request.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)<br> `error` - request error (=`null` if request was successful)<br> `response` - request's result (=`null` if request was unsuccessful)
 beforeSignOut | `(ctx) => any` | Callback function to be executed before manual sign out.<br> Function's arguments are: <br> `ctx` - the msal class's context (vm.$msal)
@@ -327,7 +334,7 @@ Option | Type | Description
 ------ | ----------- | -----------
 logger | **Logger** object | A Logger object with a callback instance that can be provided by the developer to consume and publish logs in a custom manner. For details on passing logger object, see [logging with msal.js](https://docs.microsoft.com/en-us/azure/active-directory/develop/msal-logging).
 loadFrameTimeout | number | The number of milliseconds of inactivity before a token renewal response from Azure AD should be considered timed out.<br> **Default**: `6000`.
-tokenRenewalOffsetSeconds | number | The number of milliseconds which sets the window of offset needed to renew the token before expiry.<br> **Default**: `300`.
+tokenRenewalOffsetSeconds | number | The number of milliseconds which sets the window of offset needed to renew the token before expiry.<br> **Default**: `300`. <br> :grey_exclamation: **Note:** Setting this number too high may result in `invalid_grant` errors (more info [here](https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-breaking-changes#looping-clients-will-be-interrupted))
 
 #### `framework` options
 

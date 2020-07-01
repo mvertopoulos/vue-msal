@@ -18,7 +18,7 @@ export default class msalPlugin {
             signIn() { msal.signIn(); },
             async signOut() { await msal.signOut(); },
             isAuthenticated() { return msal.isAuthenticated(); },
-            async acquireToken(request) { return await msal.acquireToken(request); },
+            async acquireToken(request, retries = 0) { return await msal.acquireToken(request, retries); },
             async msGraph(endpoints, batchUrl) { return await msal.msGraph(endpoints, batchUrl) },
             saveCustomData(key: string, data: any) { msal.saveCustomData(key, data); }
         };

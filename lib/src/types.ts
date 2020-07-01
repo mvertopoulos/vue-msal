@@ -55,6 +55,7 @@ export type Options = {
 export type DataObject = {
     isAuthenticated: boolean,
     accessToken: string,
+    idToken: string,
     user: object,
     graph: object,
     custom: object
@@ -71,7 +72,7 @@ export interface MSALBasic {
     signIn: () => void,
     signOut: () => Promise<any> | void,
     isAuthenticated: () => boolean,
-    acquireToken: (request: Request) => Promise<string | boolean>,
+    acquireToken: (request: Request, retries: number) => Promise<AuthResponse | boolean>,
     msGraph: (endpoints:  GraphEndpoints, batchUrl: string | undefined) => Promise<object>,
     saveCustomData: (key: string, data: any) => void
 }
