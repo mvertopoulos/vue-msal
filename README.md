@@ -84,11 +84,12 @@ new Vue({
 * `signOut()`: Sign out an authorized user
 * `isAuthenticated()`: Returns `true` if the user has been authenticated and `false` otherwise.
 > :grey_exclamation: *Note: This function should not be used for reactivity. In order to **watch** whether the user is authenticated or not you should use the [mixin](#mixin) data properties below.*
-* `acquireToken([request[,retries]])`: Acquire an access token manually.
+* `acquireToken([request[,retries[,storeToken]]])`: Acquire an access token manually.
 > :grey_exclamation: *Note: This will also run automatically after the user's successful authentication using the default permissions defined in the `auth.scopes` property of the configuration options. You should however run this manually in case you want to get an access token with more permissions than the default, by adding the new request options as an argument, like this<br>
 >`acquireToken({scopes: ["user.read", "another.permission"]})` <br>
 >Check the [Request Configuration Options](#request-options) below for more details*.<br>
 >You can also pass in a second parameter, with a number of retries in case of an **unexpected** failure (i.e. network errors).
+>The third parameter is a boolean and instructs the library whether to store the token in the $msal object or to simply pass the token back. This defaults to true and allows for token retrieval for non Graph API's protected by AzureAD bearer tokens without requiring to request another token for Graph scopes after use.
 * `msGraph(endpoints[,batchUrl])`: Manually call the MS Graph API using the acquired access token.
 > :grey_exclamation: *Note: Read the [Calling MS Graph](#calling-ms-graph) section for more details*
 * `saveCustomData(key, data)`: You can use this function to add custom data to the selected cache location (set with `cache.cacheLocation` in  the [configuration options](#cache-options)), that will be automatically deleted when the user signs out or his access token expires. This should be used, for example, to store any user related data fetched from another API.
