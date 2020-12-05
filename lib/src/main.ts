@@ -119,11 +119,13 @@ export class MSAL implements MSALBasic {
     isAuthenticated() {
         return !this.lib.isCallback(window.location.hash) && !!this.lib.getAccount();
     }
-    async acquireToken(request = this.request, retries = 0) {
+    async acquireToken(request = this.request, retries = 0, storeToken = true) {
         try {
             //Always start with acquireTokenSilent to obtain a token in the signed in user from cache
             const response = await this.lib.acquireTokenSilent(request);
-            this.handleTokenResponse(null, response);
+            if(storeToken){
+                this.handleTokenResponse(null, response);
+            }
             return response;
         } catch (error) {
             // Upon acquireTokenSilent failure (due to consent or interaction or login required ONLY)
