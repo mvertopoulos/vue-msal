@@ -11,6 +11,7 @@ export type Auth = {
     tenantId?: string,
     tenantName?: string,
     validateAuthority?: boolean;
+    knownAuthorities: string[];
     redirectUri?: string | (() => string);
     postLogoutRedirectUri?: string | (() => string);
     navigateToLoginRequestUrl?: boolean;
