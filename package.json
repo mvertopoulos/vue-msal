@@ -1,6 +1,6 @@
 {
-  "name": "vue-msal",
-  "version": "3.2.0",
+  "name": "@ernest-chen/vue-msal",
+  "version": "3.2.1",
   "description": "Vue plugin for using Microsoft Authentication Library (MSAL)",
   "main": "dist/plugin.js",
   "scripts": {
@@ -13,26 +13,27 @@
     "authentication",
     "sso"
   ],
-  "author": "Marios Vertopoulos",
+  "author": "Ernest Chen",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mvertopoulos/vue-msal/issues"
+    "url": "https://github.com/ernest-chen/vue-msal/issues"
   },
   "contributors": [
     {
-      "name": "Marios Vertopoulos"
+      "name": "Ernest Chen"
     }
   ],
   "eslintIgnore": [
     "lib/*.*"
   ],
-  "homepage": "https://github.com/mvertopoulos/vue-msal#readme",
+  "homepage": "https://github.com/ernest-chen/vue-msal#readme",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry":"https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mvertopoulos/vue-msal.git"
+    "url": "git+https://github.com/ernest-chen/vue-msal.git"
   },
   "dependencies": {
     "axios": "^0.21.1",
