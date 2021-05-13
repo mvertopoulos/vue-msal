@@ -1,9 +1,10 @@
 {
   "name": "@ernest-chen/vue-msal-b2c",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Vue plugin for using Microsoft Authentication Library (MSAL)",
   "main": "dist/plugin.js",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -12,6 +13,9 @@
     "adal",
     "authentication",
     "sso"
+  ],
+  "files": [
+    "lib/**/*"
   ],
   "author": "Ernest Chen",
   "license": "MIT",
