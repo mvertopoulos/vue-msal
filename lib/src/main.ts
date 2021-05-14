@@ -50,7 +50,7 @@ export class MSAL implements MSALBasic {
         storeAuthStateInCookie: true
     };
     private readonly request: Request = {
-        scopes: ["user.read"]
+        scopes: ["openid"]
     };
     private readonly graph: Graph = {
         callAfterInit: false,
