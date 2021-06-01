@@ -1,9 +1,10 @@
 {
   "name": "vue-msal",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Vue plugin for using Microsoft Authentication Library (MSAL)",
   "main": "dist/plugin.js",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -28,16 +29,17 @@
   ],
   "homepage": "https://github.com/mvertopoulos/vue-msal#readme",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mvertopoulos/vue-msal.git"
   },
   "dependencies": {
-    "axios": "^0.19.0",
-    "lodash": "^4.17.15",
-    "msal": "^1.3.2"
+    "axios": "^0.21.1",
+    "lodash": "^4.17.21",
+    "msal": "^1.4.11"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.138"

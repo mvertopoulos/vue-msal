@@ -35,6 +35,7 @@ export class MSAL implements MSALBasic {
         tenantId: 'common',
         tenantName: 'login.microsoftonline.com',
         validateAuthority: true,
+        knownAuthorities: [],
         redirectUri: window.location.href,
         postLogoutRedirectUri: window.location.href,
         navigateToLoginRequestUrl: true,
@@ -49,7 +50,7 @@ export class MSAL implements MSALBasic {
         storeAuthStateInCookie: true
     };
     private readonly request: Request = {
-        scopes: ["user.read"]
+        scopes: ["openid"]
     };
     private readonly graph: Graph = {
         callAfterInit: false,
@@ -71,6 +72,7 @@ export class MSAL implements MSALBasic {
                 clientId: this.auth.clientId,
                 authority: this.auth.authority || `https://${this.auth.tenantName}/${this.auth.tenantId}`,
                 validateAuthority: this.auth.validateAuthority,
+                knownAuthorities: [],
                 redirectUri: this.auth.redirectUri,
                 postLogoutRedirectUri: this.auth.postLogoutRedirectUri,
                 navigateToLoginRequestUrl: this.auth.navigateToLoginRequestUrl
